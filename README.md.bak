@@ -1,0 +1,274 @@
+# agent-twitter-client
+
+这是[@the-convocation/twitter-scraper](https://github.com/the-convocation/twitter-scraper)的修改版本，增加了发送推文和转推的功能。这个包不需要Twitter API即可使用，并且可以在浏览器和服务器环境中运行。
+
+## 安装
+
+```sh
+npm install agent-twitter-client
+```
+
+## 设置
+
+配置用于身份验证的环境变量。
+
+```
+TWITTER_USERNAME=    # 账号用户名
+TWITTER_PASSWORD=    # 账号密码
+TWITTER_EMAIL=       # 账号邮箱
+PROXY_URL=           # 请求的HTTP(S)代理（浏览器环境必需）
+
+# Twitter API v2 凭据（用于推文和投票功能）
+TWITTER_API_KEY=               # Twitter API 密钥
+TWITTER_API_SECRET_KEY=        # Twitter API 密钥
+TWITTER_ACCESS_TOKEN=          # Twitter API v2 访问令牌
+TWITTER_ACCESS_TOKEN_SECRET=   # Twitter API v2 访问令牌密钥
+```
+
+### 获取Twitter Cookies
+
+使用Twitter cookies可以避免每次执行操作时都向Twitter发送新的登录请求。
+
+在你的应用程序中，你可能需要检查现有的cookies。如果没有可用的cookies，使用用户身份验证凭据登录，并缓存cookies以供将来使用。
+
+```ts
+const scraper = await getScraper({ authMethod: 'password' });
+
+scraper.getCookies().then((cookies) => {
+  console.log(cookies);
+  // 移除 'Cookies' 并将cookies保存为JSON数组
+});
+```
+
+## 快速开始
+
+```ts
+const scraper = new Scraper();
+await scraper.login('用户名', '密码');
+
+// 如果使用v2功能（目前需要支持投票）
+await scraper.login(
+  '用户名',
+  '密码',
+  '邮箱',
+  '应用程序密钥',
+  '应用程序密钥',
+  '访问令牌',
+  '访问令牌密钥',
+);
+
+const tweets = await scraper.getTweets('elonmusk', 10);
+const tweetsAndReplies = scraper.getTweetsAndReplies('elonmusk');
+const latestTweet = await scraper.getLatestTweet('elonmusk');
+const tweet = await scraper.getTweet('1234567890123456789');
+await scraper.sendTweet('Hello world!');
+
+// 创建一个投票
+await scraper.sendTweetV2(
+  'What's got you most hyped? Let us know! 🤖💸',
+  undefined,
+  {
+    poll: {
+      options: [
+        { label: 'AI Innovations 🤖' },
+        { label: 'Crypto Craze 💸' },
+        { label: 'Both! 🌌' },
+        { label: 'Neither for Me 😅' },
+      ],
+      durationMinutes: 120, // 投票持续时间（分钟）
+    },
+  },
+);
+```
+
+### 获取特定推文数据（V2）
+
+```ts
+// 获取一个带有投票详细信息的推文
+const tweet = await scraper.getTweetV2('1856441982811529619', {
+  expansions: ['attachments.poll_ids'],
+  pollFields: ['options', 'end_datetime'],
+});
+console.log('tweet', tweet);
+
+// 获取多个带有投票和媒体详细信息的推文
+const tweets = await scraper.getTweetsV2(
+  ['1856441982811529619', '1856429655215260130'],
+  {
+    expansions: ['attachments.poll_ids', 'attachments.media_keys'],
+    pollFields: ['options', 'end_datetime'],
+    mediaFields: ['url', 'preview_image_url'],
+  },
+);
+console.log('tweets', tweets);
+```
+
+## API
+
+### 身份验证
+
+```ts
+// 登录
+await scraper.login('用户名', '密码');
+
+// 登出
+await scraper.logout();
+
+// 检查是否登录
+const isLoggedIn = await scraper.isLoggedIn();
+
+// 获取当前会话的cookies
+const cookies = await scraper.getCookies();
+
+// 设置当前会话的cookies
+await scraper.setCookies(cookies);
+
+// 清除当前的cookies
+await scraper.clearCookies();
+```
+
+### 个人资料
+
+```ts
+// 获取用户的个人资料
+const profile = await scraper.getProfile('TwitterDev');
+
+// 获取用户ID通过用户名
+const userId = await scraper.getUserIdByScreenName('TwitterDev');
+
+// 获取登录用户的个人资料
+const me = await scraper.me();
+```
+
+### 搜索
+
+```ts
+import { SearchMode } from 'agent-twitter-client';
+
+// 搜索最近的推文
+const tweets = scraper.searchTweets('#nodejs', 20, SearchMode.Latest);
+
+// 搜索个人资料
+const profiles = scraper.searchProfiles('John', 10);
+
+// 获取推文搜索结果的一页
+const results = await scraper.fetchSearchTweets('#nodejs', 20, SearchMode.Top);
+
+// 获取个人资料搜索结果的一页
+const profileResults = await scraper.fetchSearchProfiles('John', 10);
+```
+
+### 关系
+
+```ts
+// 获取用户的关注者
+const followers = scraper.getFollowers('12345', 100);
+
+// 获取用户关注的人
+const following = scraper.getFollowing('12345', 100);
+
+// 获取用户关注者的一页
+const followerResults = await scraper.fetchProfileFollowers('12345', 100);
+
+// 获取用户关注的人的一页
+const followingResults = await scraper.fetchProfileFollowing('12345', 100);
+
+// 关注一个用户
+const followUserResults = await scraper.followUser('elonmusk');
+```
+
+### 趋势
+
+```ts
+// 获取当前的趋势
+const trends = await scraper.getTrends();
+
+// 获取列表中的推文
+const listTweets = await scraper.fetchListTweets('1234567890', 50);
+```
+
+### 推文
+
+```ts
+// 获取用户的推文
+const tweets = scraper.getTweets('TwitterDev');
+
+// 获取用户的点赞推文
+const likedTweets = scraper.getLikedTweets('TwitterDev');
+
+// 获取用户的推文和回复
+const tweetsAndReplies = scraper.getTweetsAndReplies('TwitterDev');
+
+// 获取匹配特定条件的推文
+const timeline = scraper.getTweets('TwitterDev', 100);
+const retweets = await scraper.getTweetsWhere(
+  timeline,
+  (tweet) => tweet.isRetweet,
+);
+
+// 获取用户的最新推文
+const latestTweet = await scraper.getLatestTweet('TwitterDev');
+
+// 获取一个特定的推文通过ID
+const tweet = await scraper.getTweet('1234567890123456789');
+
+// 发送一个推文
+const sendTweetResults = await scraper.sendTweet('Hello world!');
+
+// 发送一个带有媒体的推文
+const sendQuoteTweetResults = await scraper.sendQuoteTweet('Hello world!', '1234567890123456789', ['mediaFile1', 'mediaFile2']);
+
+// 转发一个推文
+const retweetResults = await scraper.retweet('1234567890123456789');
+
+// 点赞一个推文
+const likeTweetResults = await scraper.likeTweet('1234567890123456789');
+```
+
+## 发送带有媒体的推文
+
+### 媒体处理
+Scraper需要将媒体文件处理成特定的格式才能发送：
+- 媒体文件需要转换成Buffer格式
+- 每个媒体文件需要指定MIME类型
+- 这样可以帮助Scraper区分图像和视频处理模型
+
+### 基本推文带有媒体
+```ts
+// 示例：发送一个带有媒体附件的推文
+const mediaData = [
+  {
+    data: fs.readFileSync('path/to/image.jpg'),
+    mediaType: 'image/jpeg'
+  },
+  {
+    data: fs.readFileSync('path/to/video.mp4'),
+    mediaType: 'video/mp4'
+  }
+];
+
+await scraper.sendTweet('Hello world!', undefined, mediaData);
+```
+
+### 支持的媒体类型
+```ts
+// 图像格式和MIME类型
+const imageTypes = {
+  '.jpg':  'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png':  'image/png',
+  '.gif':  'image/gif'
+};
+
+// 视频格式
+const videoTypes = {
+  '.mp4': 'video/mp4'
+};
+```
+
+### 媒体上传限制
+- 每个推文最多4张图像
+- 每个推文最多1个视频
+- 视频文件大小限制：512MB
+- 支持的图像格式：JPG、PNG、GIF
+- 支持的视频格式：MP4

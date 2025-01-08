@@ -1,0 +1,22 @@
+{
+  "extends": "@tsconfig/node16/tsconfig.json",
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "src/test-utils.ts"],
+  "include": ["src/**/*", "examples/**/*"],
+  "compilerOptions": {
+    "lib": ["es2021", "dom"],
+    "outDir": "./dist",
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    "declarationDir": "./dist",
+    "strict": true,
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "stripInternal": true,
+    "types": ["jest"],
+    "module": "commonjs"
+  }
+}

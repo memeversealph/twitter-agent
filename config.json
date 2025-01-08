@@ -1,0 +1,13 @@
+{
+  "username": "FrankChenc",
+  "password": "Frankchen1",
+  "trackedUsers": [
+    "lookonchain",
+    "theblock_",
+    "thomas_fahrer",
+    "coindeskmarkets",
+    "cointelegraph"
+  ],
+  "checkInterval": 14400000,
+  "tweetInterval": 28800000
+}
